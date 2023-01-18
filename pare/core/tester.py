@@ -387,7 +387,7 @@ class PARETester:
             dataloader = DataLoader(dataset, batch_size=self.args.batch_size, num_workers=8)
 
             pred_cam, pred_verts, pred_pose, pred_betas, \
-            pred_joints3d, smpl_joints2d, norm_joints2d = [], [], [], [], [], [], []
+            pred_joints3d, smpl_joints2d, norm_joints2d, pred_cam_t = [], [], [], [], [], [], [], []
 
             for batch in dataloader:
                 if has_keypoints:
@@ -404,6 +404,7 @@ class PARETester:
                 pred_betas.append(output['pred_shape'])  # [:, :,75:].reshape(batch_size * seqlen, -1))
                 pred_joints3d.append(output['smpl_joints3d'])  # .reshape(batch_size * seqlen, -1, 3))
                 smpl_joints2d.append(output['smpl_joints2d'])
+                pred_cam_t.append(output['pred_cam_t'])
 
             pred_cam = torch.cat(pred_cam, dim=0)
             pred_verts = torch.cat(pred_verts, dim=0)
@@ -411,6 +412,7 @@ class PARETester:
             pred_betas = torch.cat(pred_betas, dim=0)
             pred_joints3d = torch.cat(pred_joints3d, dim=0)
             smpl_joints2d = torch.cat(smpl_joints2d, dim=0)
+            pred_cam_t = torch.cat(pred_cam_t, dim=0)
 
             del batch
 
@@ -420,6 +422,7 @@ class PARETester:
             pred_betas = pred_betas.cpu().numpy()
             pred_joints3d = pred_joints3d.cpu().numpy()
             smpl_joints2d = smpl_joints2d.cpu().numpy()
+            pred_cam_t = pred_cam_t.cpu().numpy()
 
             if self.args.smooth:
                 min_cutoff = self.args.min_cutoff  # 0.004
