@@ -12,5 +12,5 @@ conda activate $CONDA_ENV_NAME
 which python
 which pip
 
-sudo apt-get install libturbojpeg
+# sudo apt-get install libturbojpeg
 pip install -r requirements.txt

@@ -33,7 +33,7 @@ from ..models import PARE, HMR
 from .config import update_hparams
 from ..utils.kp_utils import convert_kps
 from ..smplify.run import smplify_runner
-from ..utils.vibe_renderer import Renderer
+# from ..utils.vibe_renderer import Renderer
 from ..utils.pose_tracker import run_posetracker
 from ..utils.train_utils import load_pretrained_model
 from ..dataset.inference import Inference, ImageFolder
@@ -54,7 +54,12 @@ class PARETester:
     def __init__(self, args):
         self.args = args
         self.model_cfg = update_hparams(args.cfg)
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        # elif torch.backends.mps.is_available():
+        #     self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         self.model = self._build_model()
         self._load_pretrained_model()
         self.model.eval()
@@ -115,7 +120,10 @@ class PARETester:
     def _load_pretrained_model(self):
         # ========= Load pretrained weights ========= #
         logger.info(f'Loading pretrained model from {self.args.ckpt}')
-        ckpt = torch.load(self.args.ckpt)['state_dict']
+        try:
+            ckpt = torch.load(self.args.ckpt)['state_dict']
+        except RuntimeError:
+            ckpt = torch.load(self.args.ckpt, map_location=self.device)['state_dict']
         load_pretrained_model(self.model, ckpt, overwrite_shape_mismatch=True, remove_lightning=True)
         logger.info(f'Loaded pretrained weights from \"{self.args.ckpt}\"')
 
@@ -263,7 +271,6 @@ class PARETester:
                 output['pred_shape'][update] = new_opt_betas[update]
                 output['pred_cam_t'][update] = convert_weak_perspective_to_perspective(new_opt_cam)[update]
 
-
             # ==========================================================================================
             for k,v in output.items():
                 output[k] = v.cpu().numpy()
@@ -361,6 +368,13 @@ class PARETester:
         # ========= Run PARE on each person ========= #
         logger.info(f'Running PARE on each tracklet...')
 
+        # as of Jan. 19, 2023, unfold op has not been supported by MPS, we move it to cpu
+        # if self.device != torch.device('cuda'):
+        #     self.device = torch.device('cpu')
+        #     self.model = self._build_model()
+        #     self._load_pretrained_model()
+        #     self.model.eval()
+
         pare_results = {}
         for person_id in tqdm(list(tracking_results.keys())):
             bboxes = joints2d = None
@@ -384,7 +398,7 @@ class PARETester:
             frames = dataset.frames
             has_keypoints = True if joints2d is not None else False
 
-            dataloader = DataLoader(dataset, batch_size=self.args.batch_size, num_workers=8)
+            dataloader = DataLoader(dataset, batch_size=self.args.batch_size, num_workers=8)  # 8
 
             pred_cam, pred_verts, pred_pose, pred_betas, \
             pred_joints3d, smpl_joints2d, norm_joints2d, pred_cam_t = [], [], [], [], [], [], [], []
@@ -447,6 +461,7 @@ class PARETester:
 
             output_dict = {
                 'pred_cam': pred_cam,
+                'pred_cam_t': pred_cam_t,
                 'orig_cam': orig_cam,
                 'verts': pred_verts,
                 'pose': pred_pose,
