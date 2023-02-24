@@ -672,6 +672,7 @@ class PareHead(nn.Module):
 
         ############## 3D SMPL BRANCH FEATURES ##############
         smpl_feats = self._get_3d_smpl_feats(features, part_feats)
+        output['smpl_feats'] = smpl_feats
 
         ############## SAMPLE LOCAL FEATURES ##############
         if gt_segm is not None:
@@ -683,6 +684,7 @@ class PareHead(nn.Module):
             # part_attention = F.interpolate(part_attention, scale_factor=1/4, mode='bilinear', align_corners=True)
             # import IPython; IPython.embed(); exit()
         point_local_feat, cam_shape_feats = self._get_local_feats(smpl_feats, part_attention, output)
+        output['point_local_feat'] = point_local_feat
 
         ############## GET FINAL PREDICTIONS ##############
         pred_pose, pred_shape, pred_cam = self._get_final_preds(
