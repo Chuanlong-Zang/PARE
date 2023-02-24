@@ -39,9 +39,13 @@ class SMPL(_SMPL):
     def forward(self, *args, **kwargs):
         kwargs['get_skin'] = True
         smpl_output = super(SMPL, self).forward(*args, **kwargs)
-        extra_joints = vertices2joints(self.J_regressor_extra, smpl_output.vertices)
-        joints = torch.cat([smpl_output.joints, extra_joints], dim=1)
-        joints = joints[:, self.joint_map, :]
+        orig_joints = kwargs.get('orig_joints', False)
+        if orig_joints:
+            joints = smpl_output.joints[:, :24]
+        else:
+            extra_joints = vertices2joints(self.J_regressor_extra, smpl_output.vertices)
+            joints = torch.cat([smpl_output.joints, extra_joints], dim=1)
+            joints = joints[:, self.joint_map, :]
         output = SMPLOutput(vertices=smpl_output.vertices,
                             global_orient=smpl_output.global_orient,
                             body_pose=smpl_output.body_pose,
@@ -59,12 +63,13 @@ class SMPLHead(nn.Module):
         self.focal_length = focal_length
         self.img_res = img_res
 
-    def forward(self, rotmat, shape, cam=None, normalize_joints2d=False):
+    def forward(self, rotmat, shape, cam=None, normalize_joints2d=False, orig_joints=False):
         '''
         :param rotmat: rotation in euler angles format (N,J,3,3)
         :param shape: smpl betas
         :param cam: weak perspective camera
         :param normalize_joints2d: bool, normalize joints between -1, 1 if true
+        :param orig_joints: bool, use original smpl order (24), if true
         :return: dict with keys 'vertices', 'joints3d', 'joints2d' if cam is True
         '''
         smpl_output = self.smpl(
@@ -72,6 +77,7 @@ class SMPLHead(nn.Module):
             body_pose=rotmat[:, 1:].contiguous(),
             global_orient=rotmat[:, 0].unsqueeze(1).contiguous(),
             pose2rot=False,
+            orig_joints=orig_joints
         )
 
         output = {

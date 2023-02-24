@@ -192,8 +192,21 @@ class PARE(nn.Module):
                     shape=hmr_output['pred_shape'],
                     cam=hmr_output['pred_cam'],
                     normalize_joints2d=True,
+                    orig_joints=False,
                 )
                 smpl_output.update(hmr_output)
+                smpl_output_smpl_order = self.smpl(
+                    rotmat=hmr_output['pred_pose'],
+                    shape=hmr_output['pred_shape'],
+                    cam=hmr_output['pred_cam'],
+                    normalize_joints2d=True,
+                    orig_joints=True,
+                )
+                smpl_output.update({
+                    'smpl_joints3d_smpl_order': smpl_output_smpl_order['smpl_joints3d'],
+                    'smpl_joints2d_smpl_order': smpl_output_smpl_order['smpl_joints2d'],
+                })
+
         return smpl_output
 
     def load_pretrained(self, file):

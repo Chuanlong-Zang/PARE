@@ -287,10 +287,16 @@ class PARETester:
                 keypoints=output['smpl_joints2d'],
                 crop_size=self.model_cfg.DATASET.IMG_RES,
             )
+            smpl_joints2d_smpl_order = convert_crop_coords_to_orig_img(
+                bbox=dets,
+                keypoints=output['smpl_joints2d_smpl_order'],
+                crop_size=self.model_cfg.DATASET.IMG_RES,
+            )
 
             output['bboxes'] = dets
             output['orig_cam'] = orig_cam
             output['smpl_joints2d'] = smpl_joints2d
+            output['smpl_joints2d_smpl_order'] = smpl_joints2d_smpl_order
 
             del inp_images
 
