@@ -27,6 +27,7 @@ import time
 import joblib
 import argparse
 from loguru import logger
+from scipy.interpolate import interp1d
 
 sys.path.append('.')
 from pare.core.tester import PARETester
@@ -69,6 +70,15 @@ def main(args):
     total_time = time.time()
     # detections = tester.run_detector(input_image_folder)
     detections = joblib.load(args.bbox_file)['frames']['bbox']
+    infill_detection = True
+    if infill_detection:
+        frame_visible = joblib.load(args.bbox_file)['frames']['frame_visible']
+        if not np.all(frame_visible):
+            vis_ind = np.where(frame_visible)[0]
+            f = interp1d(vis_ind.astype(np.float32), detections[vis_ind], axis=0, assume_sorted=True,
+                         fill_value="extrapolate")
+            detections = f(np.arange(len(frame_visible), dtype=np.float32))
+
 
     pare_time = time.time()
     tester.run_on_image_folder(input_image_folder, detections, output_path, output_img_folder,
