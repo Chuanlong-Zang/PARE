@@ -182,7 +182,7 @@ class PARETester:
                                             show_results=False,
                                             results_folder=os.path.join(output_path, 'mmpose_results'))
 
-        for img_idx, img_fname in enumerate(image_file_names):
+        for img_idx, img_fname in tqdm(enumerate(image_file_names)):
             dets = detections[img_idx]
 
             if len(dets) < 1:
